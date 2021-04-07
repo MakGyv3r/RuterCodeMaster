@@ -11,8 +11,6 @@
 #define EEPROM_MOTOR_CURRENT_SUB 250
 
 
-#define TX2_pin  17
-#define RX2_pin  16
 
 
 //Config_OTA
@@ -77,8 +75,8 @@ void sendtask();
 void swithTaskSlave( int taskReceive,const JsonDocument& local_doc);
 
 void setup() {
-    Serial.begin(115200);
-  Serial2.begin(115200/*, SERIAL_8N1, RX2_pin, TX2_pin*/);
+  Serial.begin(115200);
+  Serial2.begin(5000000);
   Serial.println("i am your fater");
    // wifi.wifiSetupNew();
   //  id="\""+wifi.readStringEEPROM(EEPROM_ID)+"\"";
