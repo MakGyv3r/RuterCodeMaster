@@ -30,15 +30,16 @@
   char path[33] = "/socket.io/?transport=websocket"; // Socket.IO Base Path
   SocketIoClient  webSocket;
 //socket funnctions
-//  void socket_Connected(const char * payload, size_t length);
-//  void socket_event(const char * payload, size_t length);
-//  void socket_motor_change(const char * payload, size_t length);
-//  void check_sensore1(const char * payload, size_t length);
-//  void auto_watering_change(const char * payload, size_t length) ; 
-//  void check_update_progrem(const char * payload, size_t length);
-//  void insert_motor_current_Sub(const char * payload, size_t length) ;
-//  void send_version(const char * payload, size_t length);
- 
+  void socket_Connected(const char * payload, size_t length);
+  void socket_One_Plant_Initialization(const char * payload, size_t length);
+  void socket_Two_Irrigate_Plant_Option(const char * payload, size_t length);
+  void socket_Three_Sends_Sensors(const char * payload, size_t length);
+  void socket_Four_Auto_Irrigate_State(const char * payload, size_t length);
+  void socket_Six_Motor_Stop_Start(const char * payload, size_t length);
+  void socket_Eight_Check_Update_Progrem(const char * payload, size_t length);
+  void socket_event(const char * payload, size_t length);
+  void send_version(const char * payload, size_t length);
+
 
 //Config_wifi
   Config_wifi wifi;
@@ -49,15 +50,15 @@
 //struct of veribales that are received from plant
 typedef struct DataStruct{ 
   int task;
-  String plantIdNumber="000000003";
+  String productCatNumber;
   int batteryStatus;
   int moistureStatus;
   int lightStatus;
-  bool motorState=false;
+  bool motorState;
   bool waterState;
-  int motorCurrentSub=300;
-  int irrigatePlantOption=3;
-  bool autoIrrigateState=false;
+  int motorCurrentSub;
+  int irrigatePlantOption;
+  bool autoIrrigateState;
   bool irrigatePlantWorking;
   unsigned short versuionNumber;
   String ssid;
@@ -78,20 +79,52 @@ void setup() {
   Serial.begin(115200);
   Serial2.begin(5000000);
   Serial.println("i am your fater");
-   // wifi.wifiSetupNew();
-  //  id="\""+wifi.readStringEEPROM(EEPROM_ID)+"\"";
+    wifi.wifiSetupNew();
+    id="\""+wifi.readStringEEPROM(EEPROM_ID)+"\"";
+    idChar=const_cast<char*>(id.c_str());
     
-    // Setup 'on' listen events
-//    webSocket.on("connect", socket_Connected);
-//    webSocket.on("event", socket_event);
-//    webSocket.on("send_progrem_Version", send_version);
-//    webSocket.on("state_change_request", socket_motor_change);// change the motor state
-//    webSocket.on("check_sensore", check_sensore); // send data to the server with the sensore average reading
-//    webSocket.on("autoWatering_change_request", auto_watering_change); // send data to the server with the sensore average reading
-//    webSocket.on("update_progrem", check_update_progrem); // see if there is update_progrem
-//    webSocket.on("get_motor_current_Sub", insert_motor_current_Sub); // see if there is update_progre
-//    webSocket.begin(host, port, path);
+//    Setup 'on' listen events
+    webSocket.on("connect", socket_Connected);
+    webSocket.on("Plant_Initialization", socket_One_Plant_Initialization);
+    webSocket.on("Irrigate_Plant_Option", socket_Two_Irrigate_Plant_Option);
+    webSocket.on("Sends_Sensors", socket_Three_Sends_Sensors);// send data to the server with the sensore average reading
+    webSocket.on("Auto_Irrigate_State", socket_Four_Auto_Irrigate_State);
+    webSocket.on("Motor_Stop_Start", socket_Six_Motor_Stop_Start);// change the motor state
+    webSocket.on("Check_Update_Progrem", socket_Eight_Check_Update_Progrem); // see if there is update_progrem  
+    webSocket.on("event", socket_event);
+    webSocket.on("send_progrem_Version", send_version);
+    webSocket.begin(host, port, path);
 }
+
+/// socket functions
+void socket_Connected(const char * payload, size_t length) {
+  webSocket.emit("storeClientInfo", { customId: idChar });
+  Serial.println("Socket.IO Connected!");
+}
+
+void socket_One_Plant_Initialization(const char * payload, size_t length){
+  DynamicJsonDocument doc1(1024);
+  DeserializationError error = deserializeJson(doc1,(String)payload);
+      if(error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
+        return;
+      }  
+//  StaticJsonDocument<200> doc;
+//  doc["task"] = 1;
+//  doc["motorCurrentSub"]=doc1["motorCurrentSub"];
+//  doc["productCatNumber"]=doc1["productCatNumber"];
+//  doc["macAddress"]=doc1["macAddress"];
+  serializeJson(doc1,Serial2); 
+}
+
+void socket_event(const char * payload, size_t length) {
+  Serial.print("got message: ");
+  Serial.println(payload);
+}
+
+
+
 
 void loop() {
   if (Serial.available() > 0) {//task that are recived from user
@@ -103,14 +136,14 @@ void loop() {
     switch(task) {
     case 1:
     doc["motorCurrentSub"]=Data.motorCurrentSub;
-    doc["plantIdNumber"]=Data.plantIdNumber;
-    Serial.println(Data.plantIdNumber);//delete before prduction
+    doc["productCatNumber"]=Data.productCatNumber;
+    Serial.println(Data.productCatNumber);//delete before prduction
     break;
     case 2:
         doc["irrigatePlantOption"]=Data.irrigatePlantOption;
         doc["motorCurrentSub"]=Data.motorCurrentSub;
-        doc["plantIdNumber"]=Data.plantIdNumber;
-        Serial.println(Data.plantIdNumber);//delete before prduction
+        doc["productCatNumber"]=Data.productCatNumber;
+        Serial.println(Data.productCatNumber);//delete before prduction
       break;
     case 3:
       break;
@@ -137,7 +170,7 @@ void loop() {
   boolean messageReady = false;
   String message = "";
     if(Serial2.available()) {
-      Serial.println("recived new massage ");//delete before prduction
+      Serial.println("recived new massage");//delete before prduction
       message = Serial2.readString();
       messageReady = true;
     }
@@ -164,9 +197,9 @@ void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recive
     case 1:
 //      plantInitialization
      Data.massgeSuccess=local_doc["massgeSuccess"];
-     Data.plantIdNumber=(char*)local_doc["plantIdNumber"].as<char*>(); 
+     Data.productCatNumber=(char*)local_doc["productCatNumber"].as<char*>(); 
      Serial.println(Data.massgeSuccess); 
-     Serial.println(Data.plantIdNumber); 
+     Serial.println(Data.productCatNumber); 
     break;
       case 2://irrigatePlantOption   
     break;
@@ -181,12 +214,12 @@ void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recive
         Data.irrigatePlantWorking=local_doc["irrigatePlantWorking"];
         Data.autoIrrigateState=local_doc["autoIrrigateState"];
         Data.waterState=local_doc["waterState"];
-        Data.plantIdNumber=(char*)local_doc["plantIdNumber"].as<char*>();  
+        Data.productCatNumber=(char*)local_doc["productCatNumber"].as<char*>();  
         Serial.println("motor state:"+ (String)Data.motorState);
         Serial.println("irrigatePlantWorking state:"+ (String)Data.irrigatePlantWorking ); 
         Serial.println("autoIrrigateState state:"+ (String)Data.autoIrrigateState ); 
         Serial.println("waterState state:"+ (String)Data.waterState ); 
-        Serial.println(Data.plantIdNumber); 
+        Serial.println(Data.productCatNumber); 
       break;
     case 8:
       //checkUpdateProgrem();
