@@ -10,9 +10,6 @@
 #define EEPROM_ID 200
 #define EEPROM_MOTOR_CURRENT_SUB 250
 
-
-
-
 //Config_OTA
 //const char * const   VERSION_STRING = "0.1";
   const unsigned short VERSION_NUMBER = 1;
@@ -21,10 +18,10 @@
   EOTAUpdate updater(UPDATE_URL, VERSION_NUMBER);
 
 ////socket.io init////
-   char host[34] = "morning-falls-78321.herokuapp.com"; // Socket.IO Server Address
-   int port=80; // Socket.IO Port Address
-//   char host[34] = "192.168.1.121";
-//   int port=5000; // Socket.IO Port Addres
+   //char host[34] = "morning-falls-78321.herokuapp.com"; // Socket.IO Server Address
+   //int port=80; // Socket.IO Port Address
+   char host[34] = "192.168.1.122";
+   int port=5000; // Socket.IO Port Addres
 
 ///socket funnctions///   
   char path[33] = "/socket.io/?transport=websocket"; // Socket.IO Base Path
@@ -76,12 +73,15 @@ void sendtask();
 void swithTaskSlave( int taskReceive,const JsonDocument& local_doc);
 
 void setup() {
-  Serial.begin(115200);
-  Serial2.begin(5000000);
+  wifi.wifiSetupNew();
+ // Serial.begin(115200);
+  Serial2.begin(4500000);
+  delay(50);
   Serial.println("i am your fater");
-    wifi.wifiSetupNew();
+  //wifi.saveSsidPass("","");
     id="\""+wifi.readStringEEPROM(EEPROM_ID)+"\"";
-    
+    Serial.println((String)id);
+  
 //    Setup 'on' listen events
     webSocket.on("connect", socket_Connected);
     webSocket.on("task", socket_task);
@@ -96,40 +96,9 @@ void setup() {
     webSocket.begin(host, port, path);
 }
 
-/// socket functions
-void socket_Connected(const char * payload, size_t length) {
-  webSocket.emit("storeClientInfo", { customId: const_cast<char*>(id.c_str()) });
-  Serial.println("Socket.IO Connected!");
-}
-
-void socket_task(const char * payload, size_t length){
-  DynamicJsonDocument doc1(1024);
-  DeserializationError error = deserializeJson(doc1,(String)payload);
-      if(error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.c_str());
-        return;
-      }  
-//  StaticJsonDocument<200> doc;
-//  doc["task"] = 1;
-//  doc["motorCurrentSub"]=doc1["motorCurrentSub"];
-//  doc["productCatNumber"]=doc1["productCatNumber"];
-//  doc["macAddress"]=doc1["macAddress"];
-  serializeJson(doc1,Serial2); 
-}
-
-void socket_event(const char * payload, size_t length) {
-  Serial.print("got message: ");
-  Serial.println(payload);
-}
-
-
-
-
 void loop() { 
   webSocket.loop();
-  delay(30); 
-  
+  delay(30);   
   boolean messageReady = false;
   String message = "";
     if(Serial2.available()) {
@@ -154,6 +123,38 @@ void loop() {
       }
     }
 }
+
+/// socket functions
+void socket_Connected(const char * payload, size_t length) {
+  webSocket.emit("storeClientInfo", { customId: const_cast<char*>(id.c_str()) });
+  Serial.println("Socket.IO Connected!");
+}
+
+void socket_task(const char * payload, size_t length){
+  DynamicJsonDocument doc1(1024);
+  DeserializationError error = deserializeJson(doc1,(String)payload);
+      if(error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
+        return;
+      }  
+//  StaticJsonDocument<200> doc;
+//  doc["task"] = 1;
+//  doc["motorCurrentSub"]=doc1["motorCurrentSub"];
+//  doc["productCatNumber"]=doc1["productCatNumber"];
+//  doc["macAddress"]=doc1["macAddress"];
+  Serial.println(doc1["task"].as<String>());
+  Serial.println(doc1["macAddress"].as<String>());
+  Serial.println(doc1["productCatNumber"].as<String>());
+  Serial.println(doc1["motorCurrentSub"].as<String>());
+  serializeJson(doc1,Serial2); 
+}
+
+void socket_event(const char * payload, size_t length) {
+  Serial.print("got message: ");
+  Serial.println(payload);
+}
+
 
 void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recived from Slave 
   String resultsData;

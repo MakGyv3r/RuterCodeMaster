@@ -9,11 +9,12 @@
 #define MAX_EEPROM_LEN 50 // Max length to read ssid/passwd
 
   void Config_wifi::wifiSetupNew() {
-
-  Serial.begin(115200);
-  delay(500);
+     Serial.begin(115200);
+     delay(50);
     Serial.println();
     Serial.println("Reading settings from EEPROM");
+  delay(50);
+
     EEPROM.begin(EEPROM_SIZE);
     
 //  WiFi.disconnect(); // forget the persistent connection to test the Configuration AP
