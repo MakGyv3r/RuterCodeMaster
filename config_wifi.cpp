@@ -9,7 +9,7 @@
 #define MAX_EEPROM_LEN 50 // Max length to read ssid/passwd
 
   void Config_wifi::wifiSetupNew() {
-     Serial.begin(115200);
+    // Serial.begin(115200);
      delay(50);
     Serial.println();
     Serial.println("Reading settings from EEPROM");
@@ -50,7 +50,7 @@
   }
   
 }
-  void Config_wifi::configAP() {
+void Config_wifi::configAP() {
 
   WiFiServer configWebServer(80);
   
@@ -176,9 +176,10 @@
     ssid.toCharArray(ssidA, 99);
     pass.toCharArray(passA, 99);
 
-    
+    WiFi.mode(WIFI_STA);
     WiFi.begin(ssidA, passA);
-
+   
+   
     while (i-- > 0 && WiFi.status() != WL_CONNECTED)
     {
         delay(500);
@@ -192,7 +193,6 @@
     else if (WiFi.status() == WL_CONNECTED)
     {
       Serial.println("WiFi connected");
-      WiFi.mode(WIFI_STA);
       }
     ipaddress = WiFi.localIP().toString();
     Serial.println("WiFi connected, IP address: " + ipaddress);

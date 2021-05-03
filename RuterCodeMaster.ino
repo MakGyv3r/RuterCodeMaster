@@ -8,19 +8,20 @@
 #define EEPROM_SSID 0
 #define EEPROM_PASS 100
 #define EEPROM_ID 200
-#define EEPROM_MOTOR_CURRENT_SUB 250
 
 //Config_OTA
 //const char * const   VERSION_STRING = "0.1";
   const unsigned short VERSION_NUMBER = 1;
-  const char * const   UPDATE_URL     = "http://morning-falls-78321.herokuapp.com/updateMaster.txt";
-//  const char * const   UPDATE_URL     = "http://0db0f6a29cd7.ngrok.io/updateMaster.txt";
+ // String URL_SERVER="morning-falls-78321.herokuapp.com"
+  String const URL_SERVER="0db0f6a29cd7.ngrok.io";
+  const char * const   UPDATE_URL = "http://0db0f6a29cd7.ngrok.io/updateMaster.txt";
+  //const char * const   UPDATE_URL = "http://morning-falls-78321.herokuapp.com/updateMaster.txt";
   EOTAUpdate updater(UPDATE_URL, VERSION_NUMBER);
 
 ////socket.io init////
    //char host[34] = "morning-falls-78321.herokuapp.com"; // Socket.IO Server Address
    //int port=80; // Socket.IO Port Address
-   char host[34] = "192.168.1.122";
+   char host[34] = "192.168.1.121";
    int port=5000; // Socket.IO Port Addres
 
 ///socket funnctions///   
@@ -28,12 +29,12 @@
   SocketIoClient  webSocket;
 //socket funnctions
   void socket_Connected(const char * payload, size_t length);
-  void socket_One_Plant_Initialization(const char * payload, size_t length);
-  void socket_Two_Irrigate_Plant_Option(const char * payload, size_t length);
-  void socket_Three_Sends_Sensors(const char * payload, size_t length);
-  void socket_Four_Auto_Irrigate_State(const char * payload, size_t length);
-  void socket_Six_Motor_Stop_Start(const char * payload, size_t length);
-  void socket_Eight_Check_Update_Progrem(const char * payload, size_t length);
+//  void socket_One_Plant_Initialization(const char * payload, size_t length);
+//  void socket_Two_Irrigate_Plant_Option(const char * payload, size_t length);
+//  void socket_Three_Sends_Sensors(const char * payload, size_t length);
+//  void socket_Four_Auto_Irrigate_State(const char * payload, size_t length);
+//  void socket_Six_Motor_Stop_Start(const char * payload, size_t length);
+  void socket_Eight_Update_Progrem_Palnt(const char * payload, size_t length);
   void socket_event(const char * payload, size_t length);
   void send_version(const char * payload, size_t length);
 
@@ -73,6 +74,7 @@ void sendtask();
 void swithTaskSlave( int taskReceive,const JsonDocument& local_doc);
 
 void setup() {
+  Serial.begin(115200);
   wifi.wifiSetupNew();
  // Serial.begin(115200);
   Serial2.begin(4500000);
@@ -90,7 +92,7 @@ void setup() {
 //    webSocket.on("Sends_Sensors", socket_Three_Sends_Sensors);// send data to the server with the sensore average reading
 //    webSocket.on("Auto_Irrigate_State", socket_Four_Auto_Irrigate_State);
 //    webSocket.on("Motor_Stop_Start", socket_Six_Motor_Stop_Start);// change the motor state
-//    webSocket.on("Check_Update_Progrem", socket_Eight_Check_Update_Progrem); // see if there is update_progrem  
+    webSocket.on("Update_Progrem_plant", socket_Eight_Update_Progrem_Palnt); // see if there is update_progrem  
 //    webSocket.on("event", socket_event);
 //    webSocket.on("send_progrem_Version", send_version);
     webSocket.begin(host, port, path);
@@ -113,9 +115,9 @@ void loop() {
       if(error) {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.c_str());
-        return;
+      //  return;
       }
-      if (messageReady){
+      if ((messageReady)&&(!error)){
       Data.task = doc2["task"];
       //delay(50);
       Serial.println("task recive:"+ (String)Data.task);
@@ -143,12 +145,22 @@ void socket_task(const char * payload, size_t length){
 //  doc["motorCurrentSub"]=doc1["motorCurrentSub"];
 //  doc["productCatNumber"]=doc1["productCatNumber"];
 //  doc["macAddress"]=doc1["macAddress"];
-  Serial.println(doc1["task"].as<String>());
-  Serial.println(doc1["macAddress"].as<String>());
-  Serial.println(doc1["productCatNumber"].as<String>());
-  Serial.println(doc1["motorCurrentSub"].as<String>());
   serializeJson(doc1,Serial2); 
 }
+
+  void socket_Eight_Update_Progrem_Palnt(const char * payload, size_t length){
+  DynamicJsonDocument doc1(1024);
+  DeserializationError error = deserializeJson(doc1,(String)payload);
+      if(error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
+        return;
+      } 
+    doc1["ssid"]=wifi.readStringEEPROM(EEPROM_SSID);
+    doc1["pass"]=wifi.readStringEEPROM(EEPROM_PASS);
+    serializeJson(doc1,Serial2); 
+  }
+
 
 void socket_event(const char * payload, size_t length) {
   Serial.print("got message: ");
@@ -158,12 +170,14 @@ void socket_event(const char * payload, size_t length) {
 
 void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recived from Slave 
   String resultsData;
-  char* resultsDataC;
+  char* resultsDataC; 
+  Serial.println("\'"+local_doc["productCatNumber"].as<String>()+"\'");   
+  String productCatNumberString="\'"+local_doc["productCatNumber"].as<String>()+"\'";
+  
   switch(taskReceive) {
     case 1:
-//      plantInitialization
-//     String productCatNumber=(char*)local_doc["productCatNumber"].as<char*>();
-     resultsData="\"{productCatNumber:"+local_doc["productCatNumber"].as<String>()+",massgeSuccess:"+local_doc["massgeSuccess"].as<String>()+"}\"";
+//      plantInitialization    
+     resultsData="\"{productCatNumber:"+productCatNumberString+",massgeSuccess:"+local_doc["massgeSuccess"].as<String>()+"}\"";
      if(resultsData.length()!=0)
      resultsDataC = const_cast<char*>(resultsData.c_str());
      Serial.println(resultsDataC);
@@ -172,21 +186,27 @@ void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recive
       case 2://irrigatePlantOption   
     break;
     case 3://reciving sensor data
-       resultsData="\"{productCatNumber:"+local_doc["productCatNumber"].as<String>()+",moistureStatus:"+local_doc["moistureStatus"].as<String>()+",lightStatus:"+local_doc["lightStatus"].as<String>()+"}\"";
+       resultsData="\"{productCatNumber:"+productCatNumberString+",moistureStatus:"+local_doc["moistureStatus"].as<String>()+",lightStatus:"+local_doc["lightStatus"].as<String>()+"}\"";
        if(resultsData.length()!=0)
        resultsDataC = const_cast<char*>(resultsData.c_str());
        Serial.println(resultsDataC);
        webSocket.emit("resultsdata", resultsDataC);
       break;
     case 4://reciving motor status
-       resultsData="\"{productCatNumber:"+local_doc["productCatNumber"].as<String>()+",irrigatePlantWorking:"+local_doc["irrigatePlantWorking"].as<String>()+"autoIrrigateState:"+local_doc["autoIrrigateState"].as<String>()+"waterState:"+local_doc["waterState"].as<String>()+"motorState:"+local_doc["motorState"].as<String>()+"}\"";
+       resultsData="\"{productCatNumber:"+productCatNumberString+",irrigatePlantWorking:"+local_doc["irrigatePlantWorking"].as<String>()+",autoIrrigateState:"+local_doc["autoIrrigateState"].as<String>()+",waterState:"+local_doc["waterState"].as<String>()+",motorState:"+local_doc["motorState"].as<String>()+"}\"";
        if(resultsData.length()!=0)
        resultsDataC = const_cast<char*>(resultsData.c_str());
        Serial.println(resultsDataC);
        webSocket.emit("irrigatedata", resultsDataC);  
       break;
     case 8:
+     resultsData="\"{productCatNumber:"+productCatNumberString+",versionNumber:"+local_doc["VERSION_NUMBER"].as<String>()+",massgeSuccess:"+local_doc["massgeSuccess"].as<String>()+",wifiWorked:"+local_doc["wifiWorked"].as<String>()+"}\"";
+    if(resultsData.length()!=0)
+       resultsDataC = const_cast<char*>(resultsData.c_str());
+    Serial.println(resultsDataC);
+    webSocket.emit("updatingSuccessed", resultsDataC);  
       //checkUpdateProgrem();
     break;
+
 }
 }
