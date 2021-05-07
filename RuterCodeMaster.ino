@@ -29,11 +29,7 @@
   SocketIoClient  webSocket;
 //socket funnctions
   void socket_Connected(const char * payload, size_t length);
-//  void socket_One_Plant_Initialization(const char * payload, size_t length);
-//  void socket_Two_Irrigate_Plant_Option(const char * payload, size_t length);
-//  void socket_Three_Sends_Sensors(const char * payload, size_t length);
-//  void socket_Four_Auto_Irrigate_State(const char * payload, size_t length);
-//  void socket_Six_Motor_Stop_Start(const char * payload, size_t length);
+  void socket_Eleven_Update_Progrem_Hub(const char * payload, size_t length);
   void socket_Eight_Update_Progrem_Palnt(const char * payload, size_t length);
   void socket_event(const char * payload, size_t length);
   void send_version(const char * payload, size_t length);
@@ -86,13 +82,14 @@ void setup() {
   
 //    Setup 'on' listen events
     webSocket.on("connect", socket_Connected);
-    webSocket.on("task", socket_task);
+ //   webSocket.on("task", socket_task);
 //    webSocket.on("Plant_Initialization", socket_One_Plant_Initialization);
 //    webSocket.on("Irrigate_Plant_Option", socket_Two_Irrigate_Plant_Option);
 //    webSocket.on("Sends_Sensors", socket_Three_Sends_Sensors);// send data to the server with the sensore average reading
 //    webSocket.on("Auto_Irrigate_State", socket_Four_Auto_Irrigate_State);
 //    webSocket.on("Motor_Stop_Start", socket_Six_Motor_Stop_Start);// change the motor state
-    webSocket.on("Update_Progrem_plant", socket_Eight_Update_Progrem_Palnt); // see if there is update_progrem  
+    webSocket.on("Update_Progrem_plant", socket_Eight_Update_Progrem_Palnt); // see if there is update_progrem 
+    webSocket.on("Update_Progrem_hub", socket_Eleven_Update_Progrem_Hub); // see if there is update_progrem   
 //    webSocket.on("event", socket_event);
 //    webSocket.on("send_progrem_Version", send_version);
     webSocket.begin(host, port, path);
@@ -148,7 +145,7 @@ void socket_task(const char * payload, size_t length){
   serializeJson(doc1,Serial2); 
 }
 
-  void socket_Eight_Update_Progrem_Palnt(const char * payload, size_t length){
+void socket_Eight_Update_Progrem_Palnt(const char * payload, size_t length){
   DynamicJsonDocument doc1(1024);
   DeserializationError error = deserializeJson(doc1,(String)payload);
       if(error) {
@@ -161,11 +158,35 @@ void socket_task(const char * payload, size_t length){
     serializeJson(doc1,Serial2); 
   }
 
-
-void socket_event(const char * payload, size_t length) {
-  Serial.print("got message: ");
-  Serial.println(payload);
+void socket_Eleven_Update_Progrem_Hub(const char * payload, size_t length){
+    DynamicJsonDocument doc1(1024);
+    DeserializationError error = deserializeJson(doc1,(String)payload);
+        if(error) {
+          Serial.print(F("deserializeJson() failed: "));
+          Serial.println(error.c_str());
+          return;
+        }
+    if(doc1["task"]=="hub"){
+      if(doc1["VERSION_NUMBER"]>VERSION_NUMBER){
+            updater.CheckAndUpdate();
+      }
+      else {
+        String resultsData="\"{hubId:"+id+", versionNumber:"+String(VERSION_NUMBER)+",type:"+"hub"+"}\"";
+        char* resultsDataC; 
+        if(resultsData.length()!=0){
+               resultsDataC = const_cast<char*>(resultsData.c_str());}
+        Serial.println(resultsDataC);
+        webSocket.emit("Update_Progrem_hub", {resultsDataC});       
+      }
+    }
+    if(doc1["task"]=="slave"){
+          doc1["ssid"]=wifi.readStringEEPROM(EEPROM_SSID);
+          doc1["pass"]=wifi.readStringEEPROM(EEPROM_PASS);
+          serializeJson(doc1,Serial2); 
+      }    
 }
+
+
 
 
 void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recived from Slave 
@@ -207,6 +228,15 @@ void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recive
     webSocket.emit("updatingSuccessed", resultsDataC);  
       //checkUpdateProgrem();
     break;
+    case 11:
+     resultsData="\"{hubId:"+id+",,versionNumber:"+local_doc["VERSION_NUMBER"].as<String>()+",massgeSuccess:"+local_doc["massgeSuccess"].as<String>()+"}\"";
+    if(resultsData.length()!=0)
+       resultsDataC = const_cast<char*>(resultsData.c_str());
+    Serial.println(resultsDataC);
+    webSocket.emit("Update_Progrem_hub", resultsDataC);  
+      //checkUpdateProgrem();
+    break;
+    
 
 }
 }
