@@ -14,7 +14,7 @@
   const unsigned short VERSION_NUMBER = 1;
  // String URL_SERVER="morning-falls-78321.herokuapp.com"
   String const URL_SERVER="0db0f6a29cd7.ngrok.io";
-  const char * const   UPDATE_URL = "http://0db0f6a29cd7.ngrok.io/updateMaster.txt";
+  const char * const   UPDATE_URL = "http://0db0f6a29cd7.ngrok.io/hubmaster.txt";
   //const char * const   UPDATE_URL = "http://morning-falls-78321.herokuapp.com/updateMaster.txt";
   EOTAUpdate updater(UPDATE_URL, VERSION_NUMBER);
 
@@ -25,10 +25,12 @@
    int port=5000; // Socket.IO Port Addres
 
 ///socket funnctions///   
-  char path[33] = "/socket.io/?transport=websocket"; // Socket.IO Base Path
+  char path[39] = "/socket.io/?EIO=3&transport=websocket"; // Socket.IO Base Path
   SocketIoClient  webSocket;
+  
 //socket funnctions
   void socket_Connected(const char * payload, size_t length);
+  void socket_task(const char * payload, size_t length);
   void socket_Eleven_Update_Progrem_Hub(const char * payload, size_t length);
   void socket_Eight_Update_Progrem_Palnt(const char * payload, size_t length);
   void socket_event(const char * payload, size_t length);
@@ -72,7 +74,6 @@ void swithTaskSlave( int taskReceive,const JsonDocument& local_doc);
 void setup() {
   Serial.begin(115200);
   wifi.wifiSetupNew();
- // Serial.begin(115200);
   Serial2.begin(4500000);
   delay(50);
   Serial.println("i am your fater");
@@ -82,7 +83,7 @@ void setup() {
   
 //    Setup 'on' listen events
     webSocket.on("connect", socket_Connected);
- //   webSocket.on("task", socket_task);
+    webSocket.on("task", socket_task);
 //    webSocket.on("Plant_Initialization", socket_One_Plant_Initialization);
 //    webSocket.on("Irrigate_Plant_Option", socket_Two_Irrigate_Plant_Option);
 //    webSocket.on("Sends_Sensors", socket_Three_Sends_Sensors);// send data to the server with the sensore average reading
@@ -90,7 +91,7 @@ void setup() {
 //    webSocket.on("Motor_Stop_Start", socket_Six_Motor_Stop_Start);// change the motor state
     webSocket.on("Update_Progrem_plant", socket_Eight_Update_Progrem_Palnt); // see if there is update_progrem 
     webSocket.on("Update_Progrem_hub", socket_Eleven_Update_Progrem_Hub); // see if there is update_progrem   
-//    webSocket.on("event", socket_event);
+    webSocket.on("event", socket_event);
 //    webSocket.on("send_progrem_Version", send_version);
     webSocket.begin(host, port, path);
 }
@@ -127,6 +128,11 @@ void loop() {
 void socket_Connected(const char * payload, size_t length) {
   webSocket.emit("storeClientInfo", { customId: const_cast<char*>(id.c_str()) });
   Serial.println("Socket.IO Connected!");
+}
+
+void socket_event(const char * payload, size_t length) {
+  Serial.print("got message: ");
+  Serial.println(payload);
 }
 
 void socket_task(const char * payload, size_t length){
@@ -186,9 +192,6 @@ void socket_Eleven_Update_Progrem_Hub(const char * payload, size_t length){
       }    
 }
 
-
-
-
 void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recived from Slave 
   String resultsData;
   char* resultsDataC; 
@@ -196,8 +199,7 @@ void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recive
   String productCatNumberString="\'"+local_doc["productCatNumber"].as<String>()+"\'";
   
   switch(taskReceive) {
-    case 1:
-//      plantInitialization    
+    case 1://plantInitialization    
      resultsData="\"{productCatNumber:"+productCatNumberString+",massgeSuccess:"+local_doc["massgeSuccess"].as<String>()+"}\"";
      if(resultsData.length()!=0)
      resultsDataC = const_cast<char*>(resultsData.c_str());
@@ -236,7 +238,5 @@ void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recive
     webSocket.emit("Update_Progrem_hub", resultsDataC);  
       //checkUpdateProgrem();
     break;
-    
-
 }
 }
