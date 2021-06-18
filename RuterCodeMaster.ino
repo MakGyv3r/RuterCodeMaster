@@ -199,7 +199,8 @@ void swithTaskSlave(int taskReceive,const JsonDocument& local_doc){//task recive
   String productCatNumberString="\'"+local_doc["productCatNumber"].as<String>()+"\'";
   
   switch(taskReceive) {
-    case 1://plantInitialization    
+    case 1://plantInitialization
+     Serial.println(local_doc["massgeSuccess"].as<String>());   
      resultsData="\"{productCatNumber:"+productCatNumberString+",massgeSuccess:"+local_doc["massgeSuccess"].as<String>()+"}\"";
      if(resultsData.length()!=0)
      resultsDataC = const_cast<char*>(resultsData.c_str());
