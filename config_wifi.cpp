@@ -8,48 +8,48 @@
 #define EEPROM_ID 200
 #define MAX_EEPROM_LEN 50 // Max length to read ssid/passwd
 
-  void Config_wifi::wifiSetupNew() {
+void Config_wifi::wifiSetupNew() {
     // Serial.begin(115200);
      delay(50);
     Serial.println();
     Serial.println("Reading settings from EEPROM");
-  delay(50);
-
-    EEPROM.begin(EEPROM_SIZE);
+    delay(50);
+  
+      EEPROM.begin(EEPROM_SIZE);
+      
+  //  WiFi.disconnect(); // forget the persistent connection to test the Configuration AP
+  
+    // waiting for connection to remembered  Wifi network
+    Serial.println("Waiting for connection to WiFi");
+  
+    savedSSID = readStringEEPROM(EEPROM_SSID);
+    savedPASS = readStringEEPROM(EEPROM_PASS);
+    Serial.println(savedSSID);
+    Serial.println(savedPASS); 
+    Serial.println("press 1 to disconect from wifi");
+    // Try to guess if we got saved data or random unitialized
+    if (savedSSID.length() == MAX_EEPROM_LEN || savedPASS.length() == MAX_EEPROM_LEN)
+    {
+        Serial.println("Unitialized data from EEPROM");
+        Serial.println("Setting up AP");
+        connected = false;
+    }
+    else
+    {
+        Serial.println("Trying to connect to saved WiFi");
+        connected = connectWifi(savedSSID, savedPASS);
+    }
+    WiFi.waitForConnectResult();
     
-//  WiFi.disconnect(); // forget the persistent connection to test the Configuration AP
-
-  // waiting for connection to remembered  Wifi network
-  Serial.println("Waiting for connection to WiFi");
-
-  savedSSID = readStringEEPROM(EEPROM_SSID);
-  savedPASS = readStringEEPROM(EEPROM_PASS);
-  Serial.println(savedSSID);
-  Serial.println(savedPASS); 
-  Serial.println("press 1 to disconect from wifi");
-  // Try to guess if we got saved data or random unitialized
-  if (savedSSID.length() == MAX_EEPROM_LEN || savedPASS.length() == MAX_EEPROM_LEN)
-  {
-      Serial.println("Unitialized data from EEPROM");
-      Serial.println("Setting up AP");
-      connected = false;
-  }
-  else
-  {
-      Serial.println("Trying to connect to saved WiFi");
-      connected = connectWifi(savedSSID, savedPASS);
-  }
-  WiFi.waitForConnectResult();
-  
-  if (WiFi.status() != WL_CONNECTED || !connected) {
-    Serial.println();
-    Serial.println("Could not connect to WiFi. Starting configuration AP...");
-    configAP();
-  } else {
-    Serial.println("WiFi connected");
+    if (WiFi.status() != WL_CONNECTED || !connected) {
+      Serial.println();
+      Serial.println("Could not connect to WiFi. Starting configuration AP...");
+      configAP();
+    } else {
+      Serial.println("WiFi connected");
+    }
   }
   
-}
 void Config_wifi::configAP() {
 
   WiFiServer configWebServer(80);
@@ -142,11 +142,12 @@ void Config_wifi::configAP() {
           saveSsidPass(ssidSdecode ,passSdecode);
           WiFi.mode(WIFI_STA);
           ESP.restart() ;
+          }
         }
       }
     }
   }
-}
+  
   void Config_wifi::saveSsidPass(String ssid,String pass){
     char ssidA[100];
     char passA[100];
@@ -162,7 +163,8 @@ void Config_wifi::configAP() {
         writeStringEEPROM(EEPROM_PASS, passA);
     }
   
-}
+  }
+  
   bool Config_wifi::connectWifi(String ssid, String pass){
     char ssidA[100];
     char passA[100];

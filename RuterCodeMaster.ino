@@ -2,8 +2,10 @@
 #include "config_wifi.h"
 #include <ArduinoJson.h>
 #include <SocketIoClient.h>
-#include "EOTAUpdate.h"
+//#include "EOTAUpdate.h"
 #include <HardwareSerial.h>
+#include <ESP32httpUpdate.h>
+
 
 #define EEPROM_SSID 0
 #define EEPROM_PASS 100
@@ -12,16 +14,17 @@
 //Config_OTA
 //const char * const   VERSION_STRING = "0.1";
   const unsigned short VERSION_NUMBER = 1;
- // String URL_SERVER="morning-falls-78321.herokuapp.com"
-  String const URL_SERVER="0db0f6a29cd7.ngrok.io";
-  const char * const   UPDATE_URL = "http://0db0f6a29cd7.ngrok.io/hubmaster.txt";
-  //const char * const   UPDATE_URL = "http://morning-falls-78321.herokuapp.com/updateMaster.txt";
-  EOTAUpdate updater(UPDATE_URL, VERSION_NUMBER);
+  //String URL_SERVER="aqueous-river-62632.herokuapp.com";
+  //String const URL_SERVER="http://a16f-87-68-203-193.ngrok.io";
+  //String const URL_SERVER="192.168.1.185:5000";
+  //const char * const   UPDATE_URL = "http://a16f-87-68-203-193.ngrok.io/hubmaster.txt";
+  //const char * const   UPDATE_URL = "https://aqueous-river-62632.herokuapp.com/hubmaster.txt";
+  //EOTAUpdate updater(UPDATE_URL, VERSION_NUMBER);
 
 ////socket.io init////
-   //char host[34] = "morning-falls-78321.herokuapp.com"; // Socket.IO Server Address
+   //char host[34] = "aqueous-river-62632.herokuapp.com"; // Socket.IO Server Address
    //int port=80; // Socket.IO Port Address
-   char host[34] = "192.168.1.121";
+   char host[34] = "192.168.1.185";
    int port=5000; // Socket.IO Port Addres
 
 ///socket funnctions///   
@@ -39,6 +42,7 @@
 
 //Config_wifi
   Config_wifi wifi;
+  int wifiLed=4;
   
 // product ID
   String id;
@@ -73,13 +77,15 @@ void swithTaskSlave( int taskReceive,const JsonDocument& local_doc);
 
 void setup() {
   Serial.begin(115200);
+  pinMode(wifiLed,OUTPUT);
   wifi.wifiSetupNew();
+  digitalWrite(wifiLed, HIGH);
   Serial2.begin(4500000);
   delay(50);
   Serial.println("i am your fater");
   //wifi.saveSsidPass("","");
-    id="\""+wifi.readStringEEPROM(EEPROM_ID)+"\"";
-    Serial.println((String)id);
+  id="\""+wifi.readStringEEPROM(EEPROM_ID)+"\"";
+  Serial.println((String)id);
   
 //    Setup 'on' listen events
     webSocket.on("connect", socket_Connected);
@@ -97,7 +103,7 @@ void setup() {
 }
 
 void loop() { 
-  webSocket.loop();
+  webSocket.loop();  
   delay(30);   
   boolean messageReady = false;
   String message = "";
@@ -172,9 +178,12 @@ void socket_Eleven_Update_Progrem_Hub(const char * payload, size_t length){
           Serial.println(error.c_str());
           return;
         }
-    if(doc1["task"]=="hub"){
-      if(doc1["VERSION_NUMBER"]>VERSION_NUMBER){
-            updater.CheckAndUpdate();
+
+    if(doc1["type"].as<String>()=="hub"){
+      Serial.println(doc1["VERSION_NUMBER"].as<int>());
+      if(doc1["VERSION_NUMBER"].as<int>()>VERSION_NUMBER){
+        Serial.println(doc1["UPDATE_URL"].as<String>());           
+           t_httpUpdate_return ret = ESPhttpUpdate.update(doc1["UPDATE_URL"].as<String>());
       }
       else {
         String resultsData="\"{hubId:"+id+", versionNumber:"+String(VERSION_NUMBER)+",type:"+"hub"+"}\"";
@@ -185,7 +194,7 @@ void socket_Eleven_Update_Progrem_Hub(const char * payload, size_t length){
         webSocket.emit("Update_Progrem_hub", {resultsDataC});       
       }
     }
-    if(doc1["task"]=="slave"){
+    if(doc1["type"].as<String>()=="slave"){
           doc1["ssid"]=wifi.readStringEEPROM(EEPROM_SSID);
           doc1["pass"]=wifi.readStringEEPROM(EEPROM_PASS);
           serializeJson(doc1,Serial2); 

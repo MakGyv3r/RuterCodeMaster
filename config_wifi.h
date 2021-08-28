@@ -19,6 +19,7 @@
     String ipaddress = "";
     String networks = "";
     int i=0;
+    int wifiLed=26;
     bool connected = false;
 
     char* ID;

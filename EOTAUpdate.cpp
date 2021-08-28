@@ -21,6 +21,7 @@ EOTAUpdate::EOTAUpdate(
 
 bool EOTAUpdate::CheckAndUpdate(bool force)
 {
+
     const bool hasEverChecked = _lastUpdateMs != 0;
     const bool lastCheckIsRecent = (millis() - _lastUpdateMs < _updateIntervalMs);
     if (!force && hasEverChecked && lastCheckIsRecent)
@@ -34,7 +35,8 @@ bool EOTAUpdate::CheckAndUpdate(bool force)
         log_e("Wifi not connected");
         return false;
     }
-
+    
+    Serial.println("Checking for updates");
     log_i("Checking for updates");
 
     _lastUpdateMs = millis();
@@ -42,7 +44,7 @@ bool EOTAUpdate::CheckAndUpdate(bool force)
     String binMD5;
     if (GetUpdateFWURL(binURL, binMD5))
     {
-
+        Serial.println("Update found. Performing update");
         log_i("Update found. Performing update");
         return PerformOTA(binURL, binMD5);
     }
@@ -139,6 +141,7 @@ bool EOTAUpdate::GetUpdateFWURL(String &binURL, String &binMD5, const String &ur
 
 bool EOTAUpdate::PerformOTA(String &binURL, String &binMD5)
 {
+      Serial.println(const_cast<char*>(binURL.c_str()));
     log_d("Fetching OTA from: %s", binURL.c_str());
 
     if (binURL.length() == 0)
@@ -150,6 +153,7 @@ bool EOTAUpdate::PerformOTA(String &binURL, String &binMD5)
     bool isSSL = binURL.startsWith("https");
     if (_forceSSL && !isSSL)
     {
+            Serial.println("Trying to access a non-ssl URL on a secure update checker");
         log_e("Trying to access a non-ssl URL on a secure update checker");
         
         return false;
@@ -157,18 +161,22 @@ bool EOTAUpdate::PerformOTA(String &binURL, String &binMD5)
 
     if (WiFi.status() != WL_CONNECTED)
     {
+        Serial.println("Wifi not connected");
         log_d("Wifi not connected");
         
         return false;
     }
 
     HTTPClient httpClient;
+
     if (!httpClient.begin(binURL))
     {
+        Serial.println("Error initializing client");
         log_e("Error initializing client");
         return false;
     }
-
+    Serial.println(WiFi.status());
+    Serial.println(WL_CONNECTED);
     const auto httpCode = httpClient.GET();
     Serial.println(httpCode);
     if (httpCode != HTTP_CODE_OK)
@@ -178,6 +186,7 @@ bool EOTAUpdate::PerformOTA(String &binURL, String &binMD5)
                 httpClient.errorToString(httpCode).c_str());
         log_d("Response:\n%s",
                 httpClient.getString().c_str());
+        Serial.println("Response:" );
         return false;
     }
 
