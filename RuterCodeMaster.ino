@@ -22,10 +22,10 @@
   //EOTAUpdate updater(UPDATE_URL, VERSION_NUMBER);
 
 ////socket.io init////
-   char host[34] = "aqueous-river-62632.herokuapp.com"; // Socket.IO Server Address
-   int port=80; // Socket.IO Port Address
-   //char host[34] = "192.168.1.185";
-   //int port=5000; // Socket.IO Port Addres
+   //char host[34] = "aqueous-river-62632.herokuapp.com"; // Socket.IO Server Address
+   //int port=80; // Socket.IO Port Address
+   char host[34] = "192.168.1.185";
+   int port=5000; // Socket.IO Port Addres
 
 ///socket funnctions///   
   char path[39] = "/socket.io/?EIO=3&transport=websocket"; // Socket.IO Base Path
