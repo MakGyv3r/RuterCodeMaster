@@ -22,8 +22,8 @@
   //EOTAUpdate updater(UPDATE_URL, VERSION_NUMBER);
 
 ////socket.io init////
-   //char host[34] = "aqueous-river-62632.herokuapp.com"; // Socket.IO Server Address
-   //int port=80; // Socket.IO Port Address
+//   char host[34] = "aqueous-river-62632.herokuapp.com"; // Socket.IO Server Address
+//   int port=80; // Socket.IO Port Address
    char host[34] = "192.168.1.185";
    int port=5000; // Socket.IO Port Addres
 
@@ -114,7 +114,7 @@ void loop() {
       messageReady = true;
     }
     if (messageReady){
-      DynamicJsonDocument doc2(1024);  
+      DynamicJsonDocument doc2(2048);  
         // Attempt to deserialize the JSON-formatted message
       DeserializationError error = deserializeJson(doc2,message);
       if(error) {
@@ -143,7 +143,7 @@ void socket_event(const char * payload, size_t length) {
 }
 
 void socket_task(const char * payload, size_t length){
-  DynamicJsonDocument doc1(1024);
+  DynamicJsonDocument doc1(2048);
   DeserializationError error = deserializeJson(doc1,(String)payload);
       if(error) {
         Serial.print(F("deserializeJson() failed: "));
@@ -159,7 +159,7 @@ void socket_task(const char * payload, size_t length){
 }
 
 void socket_Eight_Update_Progrem_Palnt(const char * payload, size_t length){
-  DynamicJsonDocument doc1(1024);
+  DynamicJsonDocument doc1(2048);
   DeserializationError error = deserializeJson(doc1,(String)payload);
       if(error) {
         Serial.print(F("deserializeJson() failed: "));
@@ -172,7 +172,7 @@ void socket_Eight_Update_Progrem_Palnt(const char * payload, size_t length){
   }
 
 void socket_Eleven_Update_Progrem_Hub(const char * payload, size_t length){
-    DynamicJsonDocument doc1(1024);
+    DynamicJsonDocument doc1(2048);
     DeserializationError error = deserializeJson(doc1,(String)payload);
         if(error) {
           Serial.print(F("deserializeJson() failed: "));
